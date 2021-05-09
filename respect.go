@@ -23,8 +23,15 @@ type cmp struct {
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
-// Respect compares variables a and b, recursing into their structure, and returns a list of differences,
+// Respect check if obj respect the respectObj by recursing into their structure, and returns a list of differences,
 // or nil if there are none. Some differences may not be found if an error is also returned.
+//
+// Respect means:
+// 1. if obj and respectObj are primitive types, they should be equal with each other
+// 2. if obj and respectObj are slice type, they should have same length and elements in obj should respect the corresponding elements in respectObj
+// 3. if obj and respectObj are array type, they should have same length and elements in obj should respect the corresponding elements in respectObj
+// 4. if obj and respectObj are map type, obj should contains all the key value pair in respectObj
+// 5. if obj and respectObj are struct type, obj should contains all the fields and respect their value in respectObj
 //
 // If a type has an Equal method, like time.Equal, it is called to check for
 // equality.
