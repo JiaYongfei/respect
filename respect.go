@@ -19,6 +19,7 @@ type cmp struct {
 	diff        []string
 	buff        []string
 	floatFormat string
+	options     Options
 }
 
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
@@ -32,6 +33,7 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 // 3. if obj and respectObj are array type, they should have same length and elements in obj should respect the corresponding elements in respectObj
 // 4. if obj and respectObj are map type, obj should contains all the key value pair in respectObj
 // 5. if obj and respectObj are struct type, obj should contains all the fields and respect their value in respectObj
+//    Reminder: please don't omit the required field in respectObj struct, as these omitted required fields will be considered as empty which wil lead to unexpected result
 //
 // If a type has an Equal method, like time.Equal, it is called to check for
 // equality.
@@ -42,6 +44,7 @@ func Respect(obj, respectObj interface{}) []string {
 		diff:        []string{},
 		buff:        []string{},
 		floatFormat: fmt.Sprintf("%%.%df", FloatPrecision),
+		//options:     options,
 	}
 	if obj == nil && respectObj == nil {
 		return nil
@@ -247,31 +250,44 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			return
 		}
 
-		aLen := objVal.Len()
-		bLen := respectObjVal.Len()
+		objLen := objVal.Len()
+		respectObjLen := respectObjVal.Len()
 
-		if objVal.Pointer() == respectObjVal.Pointer() && aLen == bLen {
+		if objLen == respectObjLen {
+			if objVal.Pointer() == respectObjVal.Pointer() {
+				return
+			}
+			if respectObjLen == 0 {
+				return
+			}
+		} else if objLen < respectObjLen {
+			c.push("len")
+			c.saveDiff_(objLen, respectObjLen, "<")
+			c.pop()
 			return
 		}
 
-		n := aLen
-		if bLen > aLen {
-			n = bLen
-		}
-		for i := 0; i < n; i++ {
-			c.push(fmt.Sprintf("slice[%d]", i))
-			if i < aLen && i < bLen {
-				c.respect(objVal.Index(i), respectObjVal.Index(i), level+1)
-			} else if i < aLen {
-				c.saveDiff(objVal.Index(i), "<no value>")
-			} else {
-				c.saveDiff("<no value>", respectObjVal.Index(i))
-			}
-			c.pop()
+		//if c.options&OrderMatters != 0 {
+		// compare one by one
+		for i := 0; i < respectObjLen; i++ {
+			c.respect(objVal.Index(i), respectObjVal.Index(i), level+1)
 			if len(c.diff) >= MaxDiff {
 				break
 			}
 		}
+		//return
+		//}
+
+		// TODO:
+		// 无法sort，指定index来匹配？
+		// 如果元素是primitive，则ContainsAll?
+		// 如果是struct，则选择前两个Field来作为判断是否匹配的依据，需要先转为map?
+		//switch objVal.Index(0).Kind() {
+		//case reflect.Float32, reflect.Float64, reflect.Bool:
+		//	for i, i2 := range objVal. {
+		//
+		//	}
+		//}
 
 	/////////////////////////////////////////////////////////////////////
 	// Primitive kinds
@@ -320,10 +336,14 @@ func (c *cmp) pop() {
 }
 
 func (c *cmp) saveDiff(aval, bval interface{}) {
+	c.saveDiff_(aval, bval, "!=")
+}
+
+func (c *cmp) saveDiff_(aval, bval interface{}, operator string) {
 	if len(c.buff) > 0 {
 		varName := strings.Join(c.buff, ".")
-		c.diff = append(c.diff, fmt.Sprintf("%s: %v != %v", varName, aval, bval))
+		c.diff = append(c.diff, fmt.Sprintf("%s: %v %v %v", varName, aval, operator, bval))
 	} else {
-		c.diff = append(c.diff, fmt.Sprintf("%v != %v", aval, bval))
+		c.diff = append(c.diff, fmt.Sprintf("%v %v %v", aval, operator, bval))
 	}
 }
