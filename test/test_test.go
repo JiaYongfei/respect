@@ -2,6 +2,7 @@ package test_test
 
 import (
 	"fmt"
+	"github.com/JiaYongfei/respect"
 	. "github.com/JiaYongfei/respect/gomega"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -154,6 +155,17 @@ var _ = Describe("Test", func() {
 					Arms: []string{"left"}, // Less items
 				},
 			}))
+		})
+
+		It("Slice can't provide less items if has LengthMatters option set", func() {
+			Ω(obj).ShouldNot(Respect(&Person{
+				Name:  "NeZha",
+				Age:   int32(3),
+				Color: ColorYellow,
+				Body: Body{
+					Arms: []string{"left"}, // Less items
+				},
+			}, respect.LengthMatters))
 		})
 	})
 })

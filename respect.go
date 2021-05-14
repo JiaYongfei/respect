@@ -37,15 +37,21 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 //
 // If a type has an Equal method, like time.Equal, it is called to check for
 // equality.
-func Respect(obj, respectObj interface{}) []string {
+func Respect(obj, respectObj interface{}, respectOptions ...Options) []string {
 	objVal := reflect.ValueOf(obj)
 	respectObjVal := reflect.ValueOf(respectObj)
+
+	var options Options
+	for _, option := range respectOptions {
+		options = options | option
+	}
 	c := &cmp{
 		diff:        []string{},
 		buff:        []string{},
 		floatFormat: fmt.Sprintf("%%.%df", FloatPrecision),
-		//options:     options,
+		options:     options,
 	}
+
 	if obj == nil && respectObj == nil {
 		return nil
 	} else if obj == nil && respectObj != nil {
@@ -265,6 +271,10 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			c.saveDiff_(objLen, respectObjLen, "<")
 			c.pop()
 			return
+		} else if c.options&LengthMatters != 0 {
+			c.push("len")
+			c.saveDiff_(objLen, respectObjLen, ">")
+			c.pop()
 		}
 
 		//if c.options&OrderMatters != 0 {
