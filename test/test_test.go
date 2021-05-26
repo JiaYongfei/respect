@@ -28,7 +28,7 @@ type Leg struct {
 type Body struct {
 	Head *Head
 	Arms []string
-	Legs []Leg
+	Legs []*Leg
 }
 
 type Person struct {
@@ -43,12 +43,13 @@ type Person struct {
 var (
 	obj *Person
 
-	mouthBig   = "Big Mouth"
-	mouthSmall = "Small Mouth"
-	EyeBig     = "Big Eye"
-	EyeSmall   = "Small Eye"
-	LegLeft    = "Left Leg"
-	LegRight   = "Right Leg"
+	mouthBig      = "Big Mouth"
+	mouthSmall    = "Small Mouth"
+	EyeBig        = "Big Eye"
+	EyeSmall      = "Small Eye"
+	LegLeft       = "Left Leg"
+	LegRight      = "Right Leg"
+	LegAdditional = "Additional Leg"
 )
 
 var _ = BeforeSuite(func() {
@@ -66,7 +67,7 @@ var _ = BeforeSuite(func() {
 				},
 			},
 			Arms: []string{"left", "right"},
-			Legs: []Leg{
+			Legs: []*Leg{
 				{
 					Name: &LegLeft,
 				},
@@ -86,6 +87,19 @@ var _ = Describe("Test", func() {
 
 	BeforeEach(func() {
 		fmt.Println(CurrentGinkgoTestDescription().FullTestText)
+	})
+
+	It("Pointer", func() {
+		Ω(obj).ShouldNot(Respect(Person{
+			Name:  "NeZha",
+			Age:   int32(3),
+			Color: ColorYellow,
+		}))
+		Ω(obj).Should(Respect(&Person{
+			Name:  "NeZha",
+			Age:   int32(3),
+			Color: ColorYellow,
+		}))
 	})
 
 	Context("Premitive", func() {
@@ -119,7 +133,36 @@ var _ = Describe("Test", func() {
 	})
 
 	Context("Slice", func() {
-		It("Slice items order matters", func() {
+		It("Slice items have different order", func() {
+			Ω(obj).Should(Respect(&Person{
+				Name:  "NeZha",
+				Age:   int32(3),
+				Color: ColorYellow,
+				Body: Body{
+					Arms: []string{"right", "left"},
+				},
+			}))
+		})
+
+		It("Struct slice have different order", func() {
+			Ω(obj).Should(Respect(&Person{
+				Name:  "NeZha",
+				Age:   int32(3),
+				Color: ColorYellow,
+				Body: Body{
+					Legs: []*Leg{
+						{
+							Name: &LegRight,
+						},
+						{
+							Name: &LegLeft,
+						},
+					},
+				},
+			}))
+		})
+
+		It("Slice items should have same orders if  OrderMatters option set", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
@@ -127,7 +170,7 @@ var _ = Describe("Test", func() {
 				Body: Body{
 					Arms: []string{"right", "left"}, // Wrong order
 				},
-			}))
+			}, respect.OrderMatters))
 			Ω(obj).Should(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
@@ -135,7 +178,7 @@ var _ = Describe("Test", func() {
 				Body: Body{
 					Arms: []string{"left", "right"}, // Correct order
 				},
-			}))
+			}, respect.OrderMatters))
 		})
 
 		It("Slice can provide less items but shouldn't provide more", func() {

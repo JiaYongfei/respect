@@ -100,46 +100,23 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 	}
 
 	// Primitive https://golang.org/pkg/reflect/#Kind
-	objKind := objVal.Kind()
-	respectObjKind := respectObjVal.Kind()
-
-	// Do objVal and respectObjVal have underlying elements? Yes if they're ptr or interface.
-	objElem := objKind == reflect.Ptr || objKind == reflect.Interface
-	respectObjElem := respectObjKind == reflect.Ptr || respectObjKind == reflect.Interface
 
 	// If both types implement the error interface, compare the error strings.
 	// This must be done before dereferencing because the interface is on objVal
 	// pointer receiver. Re https://github.com/go-test/deep/issues/31, objVal/respectObjVal might
 	// be primitive kinds; see TestErrorPrimitiveKind.
-	if objType.Implements(errorType) && respectObjType.Implements(errorType) {
-		if (!objElem || !objVal.IsNil()) && (!respectObjElem || !respectObjVal.IsNil()) {
-			aString := objVal.MethodByName("Error").Call(nil)[0].String()
-			bString := respectObjVal.MethodByName("Error").Call(nil)[0].String()
-			if aString != bString {
-				c.saveDiff(aString, bString)
-				return
-			}
-		}
-	}
+	//if objType.Implements(errorType) && respectObjType.Implements(errorType) {
+	//	if (!objElem || !objVal.IsNil()) && (!respectObjElem || !respectObjVal.IsNil()) {
+	//		aString := objVal.MethodByName("Error").Call(nil)[0].String()
+	//		bString := respectObjVal.MethodByName("Error").Call(nil)[0].String()
+	//		if aString != bString {
+	//			c.saveDiff(aString, bString)
+	//			return
+	//		}
+	//	}
+	//}
 
-	// Dereference pointers and interface{}
-	if objElem || respectObjElem {
-		if objElem {
-			objVal = objVal.Elem()
-		}
-		if respectObjElem {
-			respectObjVal = respectObjVal.Elem()
-		}
-		c.respect(objVal, respectObjVal, level+1)
-		return
-	}
-
-	switch objKind {
-
-	/////////////////////////////////////////////////////////////////////
-	// Iterable kinds
-	/////////////////////////////////////////////////////////////////////
-
+	switch respectObjVal.Kind() {
 	case reflect.Struct:
 		/*
 			The variables are structs like:
@@ -277,32 +254,25 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			c.pop()
 		}
 
-		//if c.options&OrderMatters != 0 {
-		// compare one by one
-		for i := 0; i < respectObjLen; i++ {
-			c.respect(objVal.Index(i), respectObjVal.Index(i), level+1)
-			if len(c.diff) >= MaxDiff {
-				break
+		if c.options&OrderMatters != 0 {
+			// compared one by one
+			for i := 0; i < respectObjLen; i++ {
+				c.push(fmt.Sprintf("[%v]", i))
+				c.respect(objVal.Index(i), respectObjVal.Index(i), level+1)
+				c.pop()
+				if len(c.diff) >= MaxDiff {
+					break
+				}
 			}
+		} else {
+			c.respectSliceIgnoreOrder(objVal, respectObjVal, level)
 		}
-		//return
-		//}
-
-		// TODO:
-		// 无法sort，指定index来匹配？
-		// 如果元素是primitive，则ContainsAll?
-		// 如果是struct，则选择前两个Field来作为判断是否匹配的依据，需要先转为map?
-		//switch objVal.Index(0).Kind() {
-		//case reflect.Float32, reflect.Float64, reflect.Bool:
-		//	for i, i2 := range objVal. {
-		//
-		//	}
-		//}
-
-	/////////////////////////////////////////////////////////////////////
-	// Primitive kinds
-	/////////////////////////////////////////////////////////////////////
-
+	case reflect.Ptr, reflect.Interface:
+		// Do objVal and respectObjVal have underlying elements? Yes if they're ptr or interface.
+		// Dereference pointers and interface{}
+		objVal = objVal.Elem()
+		respectObjVal = respectObjVal.Elem()
+		c.respect(objVal, respectObjVal, level+1)
 	case reflect.Float32, reflect.Float64:
 		// Round floats to FloatPrecision decimal places to compare with
 		// user-defined precision. As is commonly know, floats have "imprecision"
@@ -333,6 +303,80 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			c.saveDiff(objVal.String(), respectObjVal.String())
 		}
 	}
+}
+
+// Check if slice objVal respect slice respectObjVal without considering the items order
+func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level int) {
+	// check slice items' kind. Dereference it if it's interface or pointer
+	itemKind := valueType(respectObjVal.Index(0)).Kind()
+	switch itemKind {
+	case reflect.Struct:
+		for i := 0; i < respectObjVal.Len(); i++ {
+			c.push(fmt.Sprintf("[%v]", i))
+			respectObjItemVal := valueType(respectObjVal.Index(i))
+			objItemIndex := c.structIdentifier(objVal, respectObjItemVal)
+			if objItemIndex == -1 {
+				return
+			}
+			c.respect(objVal.Index(objItemIndex), respectObjVal.Index(i), level+1)
+			if len(c.diff) >= MaxDiff {
+				break
+			}
+			c.pop()
+		}
+	case reflect.String:
+		// contains all
+		var dirtyObjIndex []int
+		for i := 0; i < respectObjVal.Len(); i++ {
+			var found bool
+			for j := 0; j < objVal.Len(); j++ {
+				if contains(dirtyObjIndex, j) {
+					continue
+				}
+				if objVal.Index(j).String() == respectObjVal.Index(i).String() {
+					found = true
+					dirtyObjIndex = append(dirtyObjIndex, j)
+					break
+				}
+			}
+			if found {
+				continue
+			} else {
+				c.push("item")
+				c.saveDiff("<not found>", respectObjVal.Index(i).String())
+				c.pop()
+			}
+		}
+	}
+}
+
+// structIdentifier use the first field of respectObjVal as the identifier to find the corresponding index of objVal slice
+func (c *cmp) structIdentifier(objVal, respectObjItemVal reflect.Value) int {
+	// Use the first field as the identifier
+	fieldName := respectObjItemVal.Type().Field(0).Name
+	respectObjItemFieldVal := valueType(respectObjItemVal.FieldByName(fieldName))
+	for i := 0; i < objVal.Len(); i++ {
+		objItemVal := valueType(objVal.Index(i))
+		objItemFieldVal := valueType(objItemVal.FieldByName(fieldName))
+		if reflect.DeepEqual(objItemFieldVal, respectObjItemFieldVal) {
+			return i
+		}
+	}
+	c.push(fieldName)
+	c.saveDiff("<not found>", respectObjItemFieldVal.String())
+	c.pop()
+	return -1
+}
+
+func valueType(v reflect.Value) reflect.Value {
+	if needDeref(v) {
+		return v.Elem()
+	}
+	return v
+}
+
+func needDeref(v reflect.Value) bool {
+	return v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface
 }
 
 func (c *cmp) push(name string) {
