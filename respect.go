@@ -332,7 +332,7 @@ func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level
 			for j := 0; j < objVal.Len(); j++ {
 				objItemVal := valueType(objVal.Index(j))
 				objItemFieldVal := valueType(objItemVal.FieldByName(fieldName))
-				if reflect.DeepEqual(objItemFieldVal, respectObjItemFieldVal) {
+				if objItemFieldVal.String() == respectObjItemFieldVal.String() {
 					found = true
 					c.respect(objVal.Index(j), respectObjVal.Index(i), level+1)
 					break
