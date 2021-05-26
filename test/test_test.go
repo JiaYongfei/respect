@@ -22,7 +22,8 @@ type Head struct {
 }
 
 type Leg struct {
-	Name *string
+	Name      *string
+	LongShort string
 }
 
 type Body struct {
@@ -153,6 +154,24 @@ var _ = Describe("Test", func() {
 					Legs: []*Leg{
 						{
 							Name: &LegRight,
+						},
+						{
+							Name: &LegLeft,
+						},
+					},
+				},
+			}))
+		})
+
+		It("Struct slice should provide valid/non-zero string/*string field identifier", func() {
+			Ω(obj).ShouldNot(Respect(&Person{
+				Name:  "NeZha",
+				Age:   int32(3),
+				Color: ColorYellow,
+				Body: Body{
+					Legs: []*Leg{
+						{
+							//Name: &LegRight,
 						},
 						{
 							Name: &LegLeft,

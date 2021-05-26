@@ -254,7 +254,7 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			c.pop()
 		}
 
-		if c.options&OrderMatters != 0 {
+		if c.options&OrderMatters != 0 || respectObjLen <= 1 {
 			// compared one by one
 			for i := 0; i < respectObjLen; i++ {
 				c.push(fmt.Sprintf("[%v]", i))
@@ -311,14 +311,38 @@ func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level
 	itemKind := valueType(respectObjVal.Index(0)).Kind()
 	switch itemKind {
 	case reflect.Struct:
+		respectObjItemVal := valueType(respectObjVal.Index(0))
+		// Use the first valid string/*string field as the identifier
+		var fieldName string
+		for i := 0; i < respectObjItemVal.NumField(); i++ {
+			if respectObjItemVal.Field(i).IsValid() && !respectObjItemVal.Field(i).IsZero() && valueType(respectObjItemVal.Field(i)).Kind() == reflect.String {
+				fieldName = respectObjItemVal.Type().Field(i).Name
+				break
+			}
+		}
+		if fieldName == "" {
+			c.save("<non valid field identifier was found>")
+			return
+		}
 		for i := 0; i < respectObjVal.Len(); i++ {
 			c.push(fmt.Sprintf("[%v]", i))
 			respectObjItemVal := valueType(respectObjVal.Index(i))
-			objItemIndex := c.structIdentifier(objVal, respectObjItemVal)
-			if objItemIndex == -1 {
-				return
+			respectObjItemFieldVal := valueType(respectObjItemVal.FieldByName(fieldName))
+			found := false
+			for j := 0; j < objVal.Len(); j++ {
+				objItemVal := valueType(objVal.Index(j))
+				objItemFieldVal := valueType(objItemVal.FieldByName(fieldName))
+				if reflect.DeepEqual(objItemFieldVal, respectObjItemFieldVal) {
+					found = true
+					c.respect(objVal.Index(j), respectObjVal.Index(i), level+1)
+					break
+				}
 			}
-			c.respect(objVal.Index(objItemIndex), respectObjVal.Index(i), level+1)
+			if !found {
+				c.push(fieldName)
+				c.saveDiff("<not found>", respectObjItemFieldVal.String())
+				c.pop()
+			}
 			if len(c.diff) >= MaxDiff {
 				break
 			}
@@ -350,24 +374,6 @@ func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level
 	}
 }
 
-// structIdentifier use the first field of respectObjVal as the identifier to find the corresponding index of objVal slice
-func (c *cmp) structIdentifier(objVal, respectObjItemVal reflect.Value) int {
-	// Use the first field as the identifier
-	fieldName := respectObjItemVal.Type().Field(0).Name
-	respectObjItemFieldVal := valueType(respectObjItemVal.FieldByName(fieldName))
-	for i := 0; i < objVal.Len(); i++ {
-		objItemVal := valueType(objVal.Index(i))
-		objItemFieldVal := valueType(objItemVal.FieldByName(fieldName))
-		if reflect.DeepEqual(objItemFieldVal, respectObjItemFieldVal) {
-			return i
-		}
-	}
-	c.push(fieldName)
-	c.saveDiff("<not found>", respectObjItemFieldVal.String())
-	c.pop()
-	return -1
-}
-
 func valueType(v reflect.Value) reflect.Value {
 	if needDeref(v) {
 		return v.Elem()
@@ -394,10 +400,14 @@ func (c *cmp) saveDiff(aval, bval interface{}) {
 }
 
 func (c *cmp) saveDiff_(aval, bval interface{}, operator string) {
+	c.save(fmt.Sprintf("%v %v %v", aval, operator, bval))
+}
+
+func (c *cmp) save(msg string) {
 	if len(c.buff) > 0 {
 		varName := strings.Join(c.buff, ".")
-		c.diff = append(c.diff, fmt.Sprintf("%s: %v %v %v", varName, aval, operator, bval))
+		c.diff = append(c.diff, fmt.Sprintf("%s: %v", varName, msg))
 	} else {
-		c.diff = append(c.diff, fmt.Sprintf("%v %v %v", aval, operator, bval))
+		c.diff = append(c.diff, msg)
 	}
 }
