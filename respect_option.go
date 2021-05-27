@@ -8,4 +8,6 @@ const (
 	OrderMatters Options = 1 << iota
 	//LengthMatters will consider the length of array/slice when comparing, rather than triggering a failure.
 	LengthMatters
+	//ZeroValueMatters will also respect zero values, rather than ignore them
+	ZeroValueMatters
 )

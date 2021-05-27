@@ -121,6 +121,11 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 	//	}
 	//}
 
+	// Ignore the zero values if ZeroValueMatters option not set
+	if c.options&ZeroValueMatters == 0 && respectObjVal.IsZero() {
+		return
+	}
+
 	switch respectObjVal.Kind() {
 	case reflect.Struct:
 		/*

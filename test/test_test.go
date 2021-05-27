@@ -110,17 +110,25 @@ var _ = Describe("Test", func() {
 	})
 
 	Context("Struct", func() {
-		It("Non-pointer value will be considered as zero value if not provided", func() {
+		It("Zero value will be ignored by default", func() {
+			Ω(obj).Should(Respect(&Person{
+				Name: "", // ignored
+				//Age: int32(3), // ignored: Non-pointer field value will be zero if not provided
+				Color: ColorYellow,
+			}))
+		})
+
+		It("Should respect zero values if ZeroValueMatters option was set", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name: "NeZha",
 				//Age: int32(3), // Non-pointer field value will be zero if not provided
 				Color: ColorYellow,
-			}))
+			}, respect.ZeroValueMatters))
 			Ω(obj).Should(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3), // Required value provided
 				Color: ColorYellow,
-			}))
+			}, respect.ZeroValueMatters))
 		})
 	})
 
