@@ -1,4 +1,4 @@
-# Gomega Matcher for large struct
+# Gomega matchers for verifying part fields' equality of a complex struct
 
 This package provides only one matcher called respect. It's useful if you only want to check part fields' equality of a complex struct.
 
@@ -15,7 +15,7 @@ Respect check if obj respect the respectObj by recursing into their structure. R
 
 e.g.:
 
-If we want to check part fields' equality of the below complex struct,
+Given a complex struct like below
 
 ```go
 complexObj = &Person{
@@ -48,7 +48,7 @@ complexObj = &Person{
 }
 ```
 
-Assert with common Gomega matchers. it looks like below:
+Assert with common Gomega matchers. it looks like
 
 ```go
 Ω(obj).ShouldNot(BeNil())
@@ -60,7 +60,7 @@ Assert with common Gomega matchers. it looks like below:
 Ω(obj.Body.Legs[0].Name).Should(Equal(LegLeft))
 ```
 
-Assert with respect matchers, it'll be more readable.
+Assert with respect matchers, it'll be more readable
 
 ```go
 Ω(complexObj).Should(Respect(&Person{
