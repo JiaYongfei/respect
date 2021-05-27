@@ -11,7 +11,7 @@ Respect check if obj respect the respectObj by recursing into their structure. R
    If LengthMatters option provided, they should have same length. If OrderMatters option provided, they'll be compared one by one in order.
 3. if obj and respectObj are map type, obj should contains all the key value pair in respectObj.
 4. if obj and respectObj are struct type, obj should contain all the fields and respect their value in respectObj.
-   Reminder: Be care of the required field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison which might lead to unexpected result
+   Reminder: Be care of the non-pointer field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison which might lead to unexpected result
 
 e.g.:
 

@@ -38,7 +38,7 @@ var errorType = reflect.TypeOf((*error)(nil)).Elem()
 //    be compared one by one in order.
 // 3. if obj and respectObj are map type, obj should contain all the key value pair in respectObj.
 // 4. if obj and respectObj are struct type, obj should contains all the fields and respect their value in respectObj.
-//    Reminder: Be care of the required field in respectObj struct, these field will be considered as zero value if
+//    Reminder: Be care of the non-pointer field in respectObj struct, these field will be considered as zero value if
 //    omitted and participate into the comparison which might lead to unexpected result
 func Respect(obj, respectObj interface{}, respectOptions ...Options) []string {
 	objVal := reflect.ValueOf(obj)
@@ -87,6 +87,7 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 	objType := objVal.Type()
 	respectObjType := respectObjVal.Type()
 	if objType != respectObjType {
+		c.push("<type>")
 		// Built-in types don't have objVal name, so don't report [3]int != [2]int as " != "
 		if respectObjType.Name() == "" || respectObjType.Name() != objType.Name() {
 			c.saveDiff(objType, respectObjType)
@@ -99,6 +100,7 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			bFullType := respectObjType.PkgPath() + "." + respectObjType.Name()
 			c.saveDiff(aFullType, bFullType)
 		}
+		c.pop()
 		return
 	}
 
@@ -247,12 +249,12 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 				return
 			}
 		} else if objLen < respectObjLen {
-			c.push("len")
+			c.push("<len>")
 			c.saveDiff_(objLen, respectObjLen, "<")
 			c.pop()
 			return
 		} else if c.options&LengthMatters != 0 {
-			c.push("len")
+			c.push("<len>")
 			c.saveDiff_(objLen, respectObjLen, ">")
 			c.pop()
 		}

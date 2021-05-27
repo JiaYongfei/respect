@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/JiaYongfei/respect"
 	"github.com/onsi/gomega/types"
+	"strings"
 )
 
 func Respect(expected interface{}, respectOptions ...respect.Options) types.GomegaMatcher {
@@ -25,9 +26,9 @@ func (matcher *respectMatcher) Match(actual interface{}) (success bool, err erro
 }
 
 func (matcher *respectMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("%v", matcher.diff)
+	return fmt.Sprintf("Diff:\n%v", strings.Join(matcher.diff, "\n"))
 }
 
 func (matcher *respectMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("%v", matcher.diff)
+	return fmt.Sprintf("Diff:\n%v", strings.Join(matcher.diff, "\n"))
 }

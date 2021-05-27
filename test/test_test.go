@@ -1,7 +1,6 @@
 package test_test
 
 import (
-	"fmt"
 	"github.com/JiaYongfei/respect"
 	. "github.com/JiaYongfei/respect/gomega"
 	. "github.com/onsi/ginkgo"
@@ -35,7 +34,7 @@ type Body struct {
 type Person struct {
 	Name        string
 	Age         int32
-	description string `json:"description,omitempty"`
+	Description *string
 	Color       Color
 	Body        Body
 	Memory      map[string]string
@@ -51,13 +50,14 @@ var (
 	LegLeft       = "Left Leg"
 	LegRight      = "Right Leg"
 	LegAdditional = "Additional Leg"
+	Description   = "I'm NeZha!!!"
 )
 
 var _ = BeforeSuite(func() {
 	obj = &Person{
 		Name:        "NeZha",
 		Age:         3,
-		description: "I'm NeZha!!!",
+		Description: &Description,
 		Color:       ColorYellow,
 		Body: Body{
 			Head: &Head{
@@ -86,43 +86,34 @@ var _ = BeforeSuite(func() {
 
 var _ = Describe("Test", func() {
 
-	BeforeEach(func() {
-		fmt.Println(CurrentGinkgoTestDescription().FullTestText)
-	})
-
-	It("Pointer", func() {
-		Ω(obj).ShouldNot(Respect(Person{
+	It("Should have same type", func() {
+		Ω(obj).ShouldNot(Respect(Person{ // Value type
 			Name:  "NeZha",
 			Age:   int32(3),
 			Color: ColorYellow,
 		}))
-		Ω(obj).Should(Respect(&Person{
+		Ω(obj).Should(Respect(&Person{ // Pointer type
 			Name:  "NeZha",
 			Age:   int32(3),
 			Color: ColorYellow,
 		}))
 	})
 
-	Context("Premitive", func() {
-		It("", func() {
-			Ω(obj).ShouldNot(Respect(&Person{
-				Name:  "NeZhaFake",
-				Age:   int32(2),
-				Color: ColorBlack,
-			}))
-			Ω(obj).Should(Respect(&Person{
-				Name:  "NeZha",
-				Age:   int32(3),
-				Color: ColorYellow,
-			}))
+	Context("Primitive", func() {
+		It("Same with Equal matcher for primitive types", func() {
+			Ω("a").Should(Respect("a"))
+			Ω(true).Should(Respect(true))
+			Ω(int32(3)).Should(Respect(int32(3)))
+			Ω(0).Should(Respect(0))
+			Ω(2.4).Should(Respect(2.4))
 		})
 	})
 
 	Context("Struct", func() {
-		It("Required value must be provided to avoid unexpected result", func() {
+		It("Non-pointer value will be considered as zero value if not provided", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name: "NeZha",
-				//Age: int32(3), // Required field value will be zero if not provided
+				//Age: int32(3), // Non-pointer field value will be zero if not provided
 				Color: ColorYellow,
 			}))
 			Ω(obj).Should(Respect(&Person{
@@ -134,7 +125,7 @@ var _ = Describe("Test", func() {
 	})
 
 	Context("Slice", func() {
-		It("Slice items have different order", func() {
+		It("Slice of string items could have different order", func() {
 			Ω(obj).Should(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
@@ -145,7 +136,7 @@ var _ = Describe("Test", func() {
 			}))
 		})
 
-		It("Struct slice have different order", func() {
+		It("Slice of struct items could have different order", func() {
 			Ω(obj).Should(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
@@ -163,7 +154,7 @@ var _ = Describe("Test", func() {
 			}))
 		})
 
-		It("Struct slice should provide valid/non-zero string/*string field identifier", func() {
+		It("Slice of struct should provide valid/non-zero string/*string field identifier", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
@@ -200,7 +191,7 @@ var _ = Describe("Test", func() {
 			}, respect.OrderMatters))
 		})
 
-		It("Slice can provide less items but shouldn't provide more", func() {
+		It("Slice in respectObj can provide less items but shouldn't provide more", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
