@@ -25,18 +25,21 @@ type cmp struct {
 var errorType = reflect.TypeOf((*error)(nil)).Elem()
 
 // Respect check if obj respect the respectObj by recursing into their structure, and returns a list of differences,
-// or nil if there are none. Some differences may not be found if an error is also returned.
+// or nil if there are none.
 //
 // Respect means:
-// 1. if obj and respectObj are primitive types, they should be equal with each other
-// 2. if obj and respectObj are slice type, they should have same length and elements in obj should respect the corresponding elements in respectObj
-// 3. if obj and respectObj are array type, they should have same length and elements in obj should respect the corresponding elements in respectObj
-// 4. if obj and respectObj are map type, obj should contains all the key value pair in respectObj
-// 5. if obj and respectObj are struct type, obj should contains all the fields and respect their value in respectObj
-//    Reminder: please don't omit the required field in respectObj struct, as these omitted required fields will be considered as empty which wil lead to unexpected result
-//
-// If a type has an Equal method, like time.Equal, it is called to check for
-// equality.
+// 1. if obj and respectObj are primitive types, they should be equal with each other.
+// 2. if obj and respectObj are slice/array type, obj should be a superset of respectObj and elements in obj should
+//    respect the corresponding elements in respectObj. If the slice/array items' kind is reflect.Struct, below is the
+//    way we used to find the corresponding elements.
+//    Use all the valid/non-zero string/*string fields of respectObj as the identifier to find the corresponding element
+//    in obj.
+//    If LengthMatters option provided, they should have same length. If OrderMatters option provided, they'll
+//    be compared one by one in order.
+// 3. if obj and respectObj are map type, obj should contain all the key value pair in respectObj.
+// 4. if obj and respectObj are struct type, obj should contains all the fields and respect their value in respectObj.
+//    Reminder: Be care of the required field in respectObj struct, these field will be considered as zero value if
+//    omitted and participate into the comparison which might lead to unexpected result
 func Respect(obj, respectObj interface{}, respectOptions ...Options) []string {
 	objVal := reflect.ValueOf(obj)
 	respectObjVal := reflect.ValueOf(respectObj)

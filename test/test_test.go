@@ -181,7 +181,7 @@ var _ = Describe("Test", func() {
 			}))
 		})
 
-		It("Slice items should have same orders if  OrderMatters option set", func() {
+		It("Slice items should have same orders if OrderMatters option set", func() {
 			Ω(obj).ShouldNot(Respect(&Person{
 				Name:  "NeZha",
 				Age:   int32(3),
