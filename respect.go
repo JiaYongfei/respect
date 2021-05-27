@@ -312,35 +312,35 @@ func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level
 	switch itemKind {
 	case reflect.Struct:
 		respectObjItemVal := valueType(respectObjVal.Index(0))
-		// Use the first valid string/*string field as the identifier
-		var fieldName string
+		// Use all the valid string/*string field as the identifier
+		var fieldNames []string
 		for i := 0; i < respectObjItemVal.NumField(); i++ {
-			if respectObjItemVal.Field(i).IsValid() && !respectObjItemVal.Field(i).IsZero() && valueType(respectObjItemVal.Field(i)).Kind() == reflect.String {
-				fieldName = respectObjItemVal.Type().Field(i).Name
-				break
+			if respectObjItemVal.Field(i).IsValid() &&
+				!respectObjItemVal.Field(i).IsZero() &&
+				valueType(respectObjItemVal.Field(i)).Kind() == reflect.String {
+				fieldNames = append(fieldNames, respectObjItemVal.Type().Field(i).Name)
 			}
 		}
-		if fieldName == "" {
+		if len(fieldNames) == 0 {
 			c.save("<non valid field identifier was found>")
 			return
 		}
 		for i := 0; i < respectObjVal.Len(); i++ {
 			c.push(fmt.Sprintf("[%v]", i))
 			respectObjItemVal := valueType(respectObjVal.Index(i))
-			respectObjItemFieldVal := valueType(respectObjItemVal.FieldByName(fieldName))
+			respectHash := structHash(respectObjItemVal, fieldNames)
 			found := false
 			for j := 0; j < objVal.Len(); j++ {
 				objItemVal := valueType(objVal.Index(j))
-				objItemFieldVal := valueType(objItemVal.FieldByName(fieldName))
-				if objItemFieldVal.String() == respectObjItemFieldVal.String() {
+				if structHash(objItemVal, fieldNames) == respectHash {
 					found = true
 					c.respect(objVal.Index(j), respectObjVal.Index(i), level+1)
 					break
 				}
 			}
 			if !found {
-				c.push(fieldName)
-				c.saveDiff("<not found>", respectObjItemFieldVal.String())
+				c.push(strings.Join(fieldNames, "-"))
+				c.saveDiff("<not found>", respectHash)
 				c.pop()
 			}
 			if len(c.diff) >= MaxDiff {
@@ -372,6 +372,14 @@ func (c *cmp) respectSliceIgnoreOrder(objVal, respectObjVal reflect.Value, level
 			}
 		}
 	}
+}
+
+func structHash(v reflect.Value, fieldNames []string) string {
+	var respectHash []string
+	for _, fn := range fieldNames {
+		respectHash = append(respectHash, valueType(v.FieldByName(fn)).String())
+	}
+	return strings.Join(respectHash, "-")
 }
 
 func valueType(v reflect.Value) reflect.Value {
