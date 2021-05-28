@@ -6,12 +6,12 @@ This package provides only one matcher called respect. It's useful if you only w
 
 Respect check if obj respect the respectObj by recursing into their structure. Respect means:
 1. if obj and respectObj are primitive types, they should be equal with each other.
-2. if obj and respectObj are slice/array type, obj should be a superset of respectObj and elements in obj should respect the corresponding elements in respectObj. If the slice/array items' kind is reflect.Struct, below is the way we used to find the corresponding elements.
+2. if obj and respectObj are slice/array type, obj should be a superset of respectObj and elements in obj should respect the corresponding elements in respectObj.      If the slice/array items' kind is reflect.Struct, below is the way we use to find the corresponding elements.
    Use all the valid/non-zero string/*string fields of respectObj as the identifier to find the corresponding element in obj.
    If LengthMatters option provided, they should have same length. If OrderMatters option provided, they'll be compared one by one in order.
 3. if obj and respectObj are map type, obj should contains all the key value pair in respectObj.
-4. if obj and respectObj are struct type, obj should contain all the fields and respect their value in respectObj.
-   Reminder: Be care of the non-pointer field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison which might lead to unexpected result
+4. if obj and respectObj are struct type, obj should respect all the field value (except zero values field) in respectObj.
+   Be careful with the non-pointer field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison which might lead to unexpected result. If ZeroValueMatters optioin provided, zero values in respectObj should also be respected.
 
 e.g.:
 
