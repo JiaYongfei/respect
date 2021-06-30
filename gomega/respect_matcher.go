@@ -1,8 +1,8 @@
 package gomega
 
 import (
-	"fmt"
 	"github.com/JiaYongfei/respect"
+	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
 	"strings"
 )
@@ -26,9 +26,9 @@ func (matcher *respectMatcher) Match(actual interface{}) (success bool, err erro
 }
 
 func (matcher *respectMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Diff:\n%v", strings.Join(matcher.diff, "\n"))
+	return format.Message(actual, "to respect", matcher.expected) + "\nDisrespect parts are:\n" + strings.Join(matcher.diff, "\n")
 }
 
 func (matcher *respectMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Diff:\n%v", strings.Join(matcher.diff, "\n"))
+	return format.Message(actual, "to not respect", matcher.expected) + "\nDisrespect parts are:\n" + strings.Join(matcher.diff, "\n")
 }
