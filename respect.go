@@ -68,19 +68,19 @@ func Respect(obj, respectObj interface{}, respectOptions ...Options) []string {
 
 	c.respect(objVal, respectObjVal, 0)
 	if len(c.diff) > 0 {
-		return c.diff // diffs
+		return c.diff
 	}
-	return nil // no diffs
+	return nil
 }
 
 func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 	// Check if one value is nil, e.g. T{x: *X} and T.x is nil
-	if respectObjVal.IsValid() {
-		if !objVal.IsValid() {
-			c.saveDiff("<nil pointer>", respectObjVal.Type())
-		}
-	} else {
+	if !respectObjVal.IsValid() {
 		return
+	}
+
+	if !objVal.IsValid() {
+		c.saveDiff("<nil pointer>", respectObjVal.Type())
 	}
 
 	// If different types, they can't be equal
