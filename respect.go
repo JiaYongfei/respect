@@ -81,6 +81,7 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 
 	if !objVal.IsValid() {
 		c.saveDiff("<nil pointer>", respectObjVal.Type())
+		return
 	}
 
 	// If different types, they can't be equal
