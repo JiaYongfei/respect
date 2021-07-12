@@ -4,7 +4,7 @@ This package provides only one matcher called respect. It's useful if you only w
 
 ## Respect()
 
-e.g.: obj.Should(Respect(respectObj, options))
+e.g.: `obj.Should(Respect(respectObj, options))`
 
 Respect means:
 1. If obj and respectObj are primitive types, they should be equal with each other.
@@ -23,7 +23,6 @@ Respect means:
    
    Be careful with the non-pointer field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison if `ZeroValueMatters` option provided. 
 
-e.g.:
 
 Given a complex struct like below
 
@@ -58,7 +57,7 @@ complexObj = &Person{
 }
 ```
 
-Assert with common Gomega matchers. it looks like
+Assert with common Gomega matchers. it looks like:
 
 ```go
 Ω(obj).ShouldNot(BeNil())
@@ -70,7 +69,7 @@ Assert with common Gomega matchers. it looks like
 Ω(obj.Body.Legs[0].Name).Should(Equal(LegLeft))
 ```
 
-Assert with respect matchers, it'll be more readable
+Assert with respect matcher, it'll be more readable
 
 ```go
 Ω(complexObj).Should(Respect(&Person{
@@ -88,4 +87,31 @@ Assert with respect matchers, it'll be more readable
 		},
 	},
 }, respect.LengthMatters))
+```
+
+What's more, all the detail information (obj, respectObj and the disrespect parts) will be print out if assertion failed which makes the analysis easier.
+
+```go
+Expected
+    <*test_test.Person | 0xc00020e000>: {
+        Name: "NeZha",
+        Age: 3,
+        Body: {
+            Head: {
+                Mouth: "Big Mouth",
+                Eyes: ["Big Eye", "Big Eye"],
+            },
+            Arms: ["left", "right"],
+        }
+    }
+to respect
+    <*test_test.Person | 0xc00020e070>: {
+        Name: "AoBing",
+        Age: 4,
+        Body: {Head: nil, Arms: ["left"], Legs: nil},
+    }
+Disrespect parts are:
+Name: NeZha != AoBing
+Age: 3 != 4
+Body.Arms.<len>: 2 > 1
 ```
