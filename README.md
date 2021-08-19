@@ -24,7 +24,7 @@ Respect means:
    Be careful with the non-pointer field in respectObj struct, these field will be considered as zero value if omitted and participate into the comparison if `ZeroValueMatters` option provided. 
 
 
-Given a complex struct like below
+## Given a complex struct like below
 
 ```go
 complexObj = &Person{
@@ -57,7 +57,11 @@ complexObj = &Person{
 }
 ```
 
-Assert with common Gomega matchers. it looks like:
+### Assert with common Gomega matchers. 
+
+1. Lots of code to write
+2. The left assertions won't execute if one of the previous assertions failed
+3. No complete obj info provided if assertion failed.
 
 ```go
 Ω(obj).ShouldNot(BeNil())
@@ -69,7 +73,54 @@ Assert with common Gomega matchers. it looks like:
 Ω(obj.Body.Legs[0].Name).Should(Equal(LegLeft))
 ```
 
-Assert with respect matcher, it'll be more readable
+### Assert with gstruct.
+
+1. Lots of code to write and a little bit complicated
+2. Field name are write in string which is error-prone
+
+```go
+idFn := func(index int, _ interface{}) string {
+	return strconv.Itoa(index)
+}
+Ω(obj).Should(PointTo(MatchFields(IgnoreExtras, Fields{
+	"Name": Equal("NeZha"),
+	"Age": Equal(int32(3)),
+	"Color": Equal(ColorYellow),
+	"Body":MatchFields(IgnoreExtras,Fields{
+		"Legs":MatchElementsWithIndex(idFn, IgnoreExtras, Elements{
+			"0": PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name": PointTo(Equal(LegLeft)),
+			})),
+			"1": PointTo(MatchFields(IgnoreExtras, Fields{
+				"Name": PointTo(Equal(LegRight)),
+			})),
+		}),
+	}),
+})))
+```
+
+failure info if assertion failed
+
+```go
+Expected
+  <string>: Person
+to match fields: {
+.Name:
+Expected
+    <string>: NeZha
+to equal
+    <string>: AoBing
+.Age:
+Expected
+    <int32>: 3
+to equal
+    <int32>: 4
+.Body.Legs:
+unexpected element 1
+}
+```
+
+### Assert with respect matcher, it'll be more readable
 
 ```go
 Ω(complexObj).Should(Respect(&Person{
