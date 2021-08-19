@@ -73,6 +73,15 @@ complexObj = &Person{
 Ω(obj.Body.Legs[0].Name).Should(Equal(LegLeft))
 ```
 
+failure info if assertion failed
+
+```go
+Expected
+  <string>: NeZha
+to equal
+  <string>: AoBing
+```
+
 ### Assert with gstruct.
 
 1. Lots of code to write and a little bit complicated
