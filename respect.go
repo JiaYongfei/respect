@@ -265,7 +265,7 @@ func (c *cmp) respect(objVal, respectObjVal reflect.Value, level int) {
 			c.pop()
 		}
 
-		if c.options&OrderMatters != 0 || respectObjLen <= 1 {
+		if c.options&OrderMatters != 0 || respectObjLen <= 1 && objLen == 1 {
 			// compared one by one
 			for i := 0; i < respectObjLen; i++ {
 				c.push(fmt.Sprintf("[%v]", i))

@@ -214,6 +214,11 @@ var _ = Describe("Test", func() {
 				Color: ColorYellow,
 				Body: Body{
 					Arms: []string{"left"}, // Less items
+					Legs: []*Leg{
+						{
+							Name: &LegRight,
+						},
+					},
 				},
 			}))
 		})
